@@ -45,6 +45,11 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+st.markdown(
+    '<meta name="color-scheme" content="light only">',
+    unsafe_allow_html=True,
+)
+
 # ----------------------------------------------------------------------
 # STYLING — navy / off-white / muted gold, Lora + Inter
 # ----------------------------------------------------------------------
@@ -64,7 +69,10 @@ st.markdown(
         --success: #1E7145;
         --danger: #A23B3B;
         --border: #D9DEE5;
+        color-scheme: light only;
     }
+
+    html { color-scheme: light only; }
 
     html, body, [class*="css"]  {
         font-family: 'Inter', sans-serif;
@@ -194,43 +202,142 @@ st.markdown(
 )
 
 # ----------------------------------------------------------------------
-# INPUT FORM
+# INPUT FORM — 4-step wizard
 # ----------------------------------------------------------------------
+DEFAULTS = {
+    "gender": "Male", "married": "Yes", "dependents": "0",
+    "education": "Graduate", "self_employed": "No", "property_area": "Urban",
+    "credit_history": "Yes", "loan_term": "360",
+    "applicant_income": 5000, "coapplicant_income": 0, "loan_amount": 120,
+}
+for k, v in DEFAULTS.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
+if "step" not in st.session_state:
+    st.session_state.step = 1
+
+STEP_TITLES = {
+    1: "Personal Details",
+    2: "Employment & Property",
+    3: "Income & Loan Details",
+    4: "Review & Predict",
+}
+
 st.markdown('<div class="panel">', unsafe_allow_html=True)
-st.markdown("#### Applicant Details")
+st.markdown(f"#### Step {st.session_state.step} of 4 — {STEP_TITLES[st.session_state.step]}")
+st.progress(st.session_state.step / 4)
 
-col1, col2, col3 = st.columns(3)
+GENDER_OPTS = ["Male", "Female"]
+YESNO_OPTS = ["Yes", "No"]
+DEP_OPTS = ["0", "1", "2", "3+"]
+EDU_OPTS = ["Graduate", "Not Graduate"]
+AREA_OPTS = ["Urban", "Semiurban", "Rural"]
+TERM_OPTS = ["360", "180", "120", "60"]
 
-with col1:
-    gender = st.selectbox("Gender", ["Male", "Female"])
-    married = st.selectbox("Married", ["Yes", "No"])
-    dependents = st.selectbox("Dependents", ["0", "1", "2", "3+"])
+if st.session_state.step == 1:
+    with st.form("step1_form"):
+        col1, col2 = st.columns(2)
+        with col1:
+            gender_v = st.selectbox("Gender", GENDER_OPTS, index=GENDER_OPTS.index(st.session_state.gender))
+            married_v = st.selectbox("Married", YESNO_OPTS, index=YESNO_OPTS.index(st.session_state.married))
+        with col2:
+            dependents_v = st.selectbox("Dependents", DEP_OPTS, index=DEP_OPTS.index(st.session_state.dependents))
+            education_v = st.selectbox("Education", EDU_OPTS, index=EDU_OPTS.index(st.session_state.education))
+        if st.form_submit_button("Next →"):
+            st.session_state.gender = gender_v
+            st.session_state.married = married_v
+            st.session_state.dependents = dependents_v
+            st.session_state.education = education_v
+            st.session_state.step = 2
+            st.rerun()
 
-with col2:
-    education = st.selectbox("Education", ["Graduate", "Not Graduate"])
-    self_employed = st.selectbox("Self Employed", ["Yes", "No"])
-    property_area = st.selectbox("Property Area", ["Urban", "Semiurban", "Rural"])
+elif st.session_state.step == 2:
+    with st.form("step2_form"):
+        col1, col2 = st.columns(2)
+        with col1:
+            self_employed_v = st.selectbox("Self Employed", YESNO_OPTS, index=YESNO_OPTS.index(st.session_state.self_employed))
+            property_area_v = st.selectbox("Property Area", AREA_OPTS, index=AREA_OPTS.index(st.session_state.property_area))
+        with col2:
+            credit_history_v = st.selectbox("Credit History Meets Guidelines", YESNO_OPTS, index=YESNO_OPTS.index(st.session_state.credit_history))
+            loan_term_v = st.selectbox("Loan Amount Term (months)", TERM_OPTS, index=TERM_OPTS.index(st.session_state.loan_term))
+        nav1, nav2 = st.columns([1, 1])
+        with nav1:
+            back = st.form_submit_button("← Back")
+        with nav2:
+            fwd = st.form_submit_button("Next →")
+        if back or fwd:
+            st.session_state.self_employed = self_employed_v
+            st.session_state.property_area = property_area_v
+            st.session_state.credit_history = credit_history_v
+            st.session_state.loan_term = loan_term_v
+            st.session_state.step = 1 if back else 3
+            st.rerun()
 
-with col3:
-    credit_history = st.selectbox("Credit History Meets Guidelines", ["Yes", "No"])
-    loan_term = st.selectbox("Loan Amount Term (months)", ["360", "180", "120", "60"])
+elif st.session_state.step == 3:
+    with st.form("step3_form"):
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            applicant_income_v = st.number_input("Applicant Income (monthly)", min_value=0, step=500, value=int(st.session_state.applicant_income))
+        with col2:
+            coapplicant_income_v = st.number_input("Co-applicant Income (monthly)", min_value=0, step=500, value=int(st.session_state.coapplicant_income))
+        with col3:
+            loan_amount_v = st.number_input("Loan Amount (in thousands)", min_value=0, step=10, value=int(st.session_state.loan_amount))
+        nav1, nav2 = st.columns([1, 1])
+        with nav1:
+            back = st.form_submit_button("← Back")
+        with nav2:
+            fwd = st.form_submit_button("Next →")
+        if back or fwd:
+            st.session_state.applicant_income = applicant_income_v
+            st.session_state.coapplicant_income = coapplicant_income_v
+            st.session_state.loan_amount = loan_amount_v
+            st.session_state.step = 2 if back else 4
+            st.rerun()
 
-col4, col5, col6 = st.columns(3)
-with col4:
-    applicant_income = st.number_input("Applicant Income (monthly)", min_value=0, value=5000, step=500)
-with col5:
-    coapplicant_income = st.number_input("Co-applicant Income (monthly)", min_value=0, value=0, step=500)
-with col6:
-    loan_amount = st.number_input("Loan Amount (in thousands)", min_value=0, value=120, step=10)
+else:  # step 4 — review
+    review_col1, review_col2 = st.columns(2)
+    with review_col1:
+        st.markdown(f"**Gender:** {st.session_state.gender}")
+        st.markdown(f"**Married:** {st.session_state.married}")
+        st.markdown(f"**Dependents:** {st.session_state.dependents}")
+        st.markdown(f"**Education:** {st.session_state.education}")
+        st.markdown(f"**Self Employed:** {st.session_state.self_employed}")
+        st.markdown(f"**Property Area:** {st.session_state.property_area}")
+    with review_col2:
+        st.markdown(f"**Credit History OK:** {st.session_state.credit_history}")
+        st.markdown(f"**Loan Term:** {st.session_state.loan_term} months")
+        st.markdown(f"**Applicant Income:** {st.session_state.applicant_income}")
+        st.markdown(f"**Co-applicant Income:** {st.session_state.coapplicant_income}")
+        st.markdown(f"**Loan Amount:** {st.session_state.loan_amount}k")
+
+    nav1, nav2 = st.columns([1, 1])
+    with nav1:
+        if st.button("← Back"):
+            st.session_state.step = 3
+            st.rerun()
 
 st.markdown("</div>", unsafe_allow_html=True)
 
-predict_clicked = st.button("Predict Eligibility")
+predict_clicked = False
+if st.session_state.step == 4:
+    predict_clicked = st.button("Predict Eligibility")
 
 # ----------------------------------------------------------------------
 # PREPROCESSING — mirrors the pipeline used in Notebook 1
 # ----------------------------------------------------------------------
 def build_feature_row():
+    gender = st.session_state.gender
+    married = st.session_state.married
+    dependents = st.session_state.dependents
+    education = st.session_state.education
+    self_employed = st.session_state.self_employed
+    property_area = st.session_state.property_area
+    credit_history = st.session_state.credit_history
+    loan_term = st.session_state.loan_term
+    applicant_income = st.session_state.applicant_income
+    coapplicant_income = st.session_state.coapplicant_income
+    loan_amount = st.session_state.loan_amount
+
     total_income = applicant_income + coapplicant_income
     dti_ratio = (loan_amount * 1000) / total_income if total_income > 0 else 0
     return {
@@ -300,6 +407,56 @@ def get_prediction(model_name, features):
     }
     return placeholder_score(features, jitter_map.get(model_name, 0.0)), False
 
+MODEL_ACCENTS = {
+    "Logistic Regression": "#1E3A5F",    # navy blue
+    "Decision Tree": "#2D5A3D",          # forest green
+    "Random Forest": "#4A5568",          # slate gray
+    "XGBoost": "#B7791F",                # burnt amber/gold
+    "Support Vector Machine": "#7C2D2D", # deep maroon
+    "K-Nearest Neighbors": "#3B6E8F",    # steel blue
+}
+
+# Alternate chart style per model: bar for 3, donut for the other 3
+MODEL_CHART_STYLE = {
+    "Logistic Regression": "bar",
+    "Random Forest": "bar",
+    "Support Vector Machine": "bar",
+    "Decision Tree": "donut",
+    "XGBoost": "donut",
+    "K-Nearest Neighbors": "donut",
+}
+
+
+def render_confidence_chart(proba, accent, style):
+    fig, ax = plt.subplots(figsize=(4, 1.1) if style == "bar" else (2.2, 2.2))
+    fig.patch.set_alpha(0)
+    ax.set_facecolor("none")
+
+    if style == "bar":
+        ax.barh([0], [1], color="#E5E7EB", height=0.5)
+        ax.barh([0], [proba], color=accent, height=0.5)
+        ax.set_xlim(0, 1)
+        ax.set_ylim(-0.5, 0.5)
+        ax.axis("off")
+        ax.text(proba + 0.02 if proba < 0.9 else proba - 0.12, 0,
+                 f"{proba:.0%}", va="center", fontsize=11, fontweight="bold",
+                 color=accent)
+    else:
+        wedge_sizes = [proba, 1 - proba]
+        ax.pie(
+            wedge_sizes,
+            colors=[accent, "#E5E7EB"],
+            startangle=90,
+            counterclock=False,
+            wedgeprops=dict(width=0.35, edgecolor="white", linewidth=2),
+        )
+        ax.text(0, 0, f"{proba:.0%}", ha="center", va="center",
+                 fontsize=15, fontweight="bold", color=accent)
+
+    plt.tight_layout(pad=0.3)
+    st.pyplot(fig, use_container_width=False)
+    plt.close(fig)
+
 # ----------------------------------------------------------------------
 # RESULTS
 # ----------------------------------------------------------------------
@@ -310,12 +467,14 @@ if predict_clicked:
 
     css_class = "result-eligible" if eligible else "result-not-eligible"
     verdict = "Eligible for Loan" if eligible else "Not Eligible for Loan"
+    accent = MODEL_ACCENTS.get(selected_model, "#1E3A5F")
+    chart_style = MODEL_CHART_STYLE.get(selected_model, "bar")
 
-    st.markdown(f'<div class="{css_class}">', unsafe_allow_html=True)
+    st.markdown(f'<div class="{css_class}" style="border-left:4px solid {accent}; padding-left:16px;">', unsafe_allow_html=True)
     st.markdown(f'<p class="result-verdict">{verdict}</p>', unsafe_allow_html=True)
     st.markdown(
         f'<p style="color:var(--text-secondary); margin-bottom:0;">'
-        f"Predicted using <strong>{selected_model}</strong> · "
+        f'Predicted using <strong style="color:{accent};">{selected_model}</strong> · '
         f"confidence score {proba:.0%}"
         f'{"" if is_real_model else " (placeholder scorer — plug in your trained model)"}'
         f"</p>",
@@ -323,7 +482,7 @@ if predict_clicked:
     )
     st.markdown("</div>", unsafe_allow_html=True)
 
-    st.progress(proba)
+    render_confidence_chart(proba, accent, chart_style)
 
     if compare_all:
         st.markdown("#### Model Comparison")
