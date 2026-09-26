@@ -454,7 +454,7 @@ def render_confidence_chart(proba, accent, style):
                  fontsize=15, fontweight="bold", color=accent)
 
     plt.tight_layout(pad=0.3)
-    st.pyplot(fig, use_container_width=False)
+    st.pyplot(fig, width="content")
     plt.close(fig)
 
 # ----------------------------------------------------------------------
